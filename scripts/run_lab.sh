@@ -51,7 +51,10 @@ else
   fi
   if [ -n "$squash" ]; then
     if command -v unsquashfs >/dev/null; then
-      unsquashfs -q -f -d "$WORK/rootfs" "$squash" >/dev/null
+      # senza root unsquashfs non può creare i device file di /dev ed esce con errore:
+      # per l'analisi non servono, quindi si prosegue se il resto è stato estratto
+      unsquashfs -q -f -d "$WORK/rootfs" "$squash" >/dev/null 2>"$OUT/unsquashfs.log" \
+        || echo "  avviso: alcuni file speciali non estratti (normale senza root), dettagli in $OUT/unsquashfs.log"
     else
       python3 -m pip install -q --user PySquashfsImage >/dev/null
       python3 -m PySquashfsImage extract -d "$WORK/rootfs" "$squash" >/dev/null 2>&1 \

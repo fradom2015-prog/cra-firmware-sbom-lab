@@ -85,9 +85,13 @@ jobs:
             echo
             echo "In un progetto reale il job di rilascio dipenderebbe da questo gate (needs:) e non partirebbe."
             echo
-            sed -n '/^## Sintesi/,/^## Priorità P1/p' out/report.md | sed '$d'
-            echo
-            sed -n '1,14p' out/checks.md
+            if [ -f out/report.md ]; then
+              sed -n '/^## Sintesi/,/^## Priorità P1/p' out/report.md | sed '$d'
+              echo
+              sed -n '1,14p' out/checks.md
+            else
+              echo "La pipeline si è interrotta prima del report: vedi il log dello step precedente."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Artefatti (SBOM, VEX, report)
