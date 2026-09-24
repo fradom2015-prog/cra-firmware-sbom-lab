@@ -1,0 +1,11 @@
+{
+  "_comment": "Correzioni tra il CPE-ID dichiarato nei pacchetti OpenWrt e il vendor:product usato da NVD. Ogni voce e' stata verificata cercando entrambi i nomi nei feed NVD (il nome dichiarato non compare in nessuna CVE, quello corretto si'). Vedi docs/findings.md.",
+  "openssh:openssh": "openbsd:openssh",
+  "matt_johnston:dropbear_ssh_server": "dropbear_ssh_project:dropbear_ssh",
+  "gnu:zlib": "zlib:zlib",
+  "libexpat:expat": "libexpat_project:libexpat",
+  "json-c_project:json-c": "json-c:json-c",
+  "netfilter_core_team:iptables": "netfilter:iptables",
+  "iputils_project:iputils": "iputils:iputils",
+  "pyyaml_project:pyyaml": "pyyaml:pyyaml"
+}

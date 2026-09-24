@@ -1,0 +1,9 @@
+{
+  "distribution": "immortalwrt-18.06-k5.4-SNAPSHOT",
+  "package_manager": "opkg",
+  "packages": 772,
+  "components_with_cpe": 118,
+  "kernel": "5.4.203",
+  "cpe_coverage_pct": 15.3,
+  "aliased": 17
+}

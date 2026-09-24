@@ -1,0 +1,3 @@
+ijson>=3.2
+pyelftools>=0.31
+tomli>=2.0; python_version < "3.11"

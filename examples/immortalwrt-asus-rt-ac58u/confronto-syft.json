@@ -1,0 +1,96 @@
+{
+  "syft_version": "1.52.0",
+  "syft_components": 2147,
+  "found_by": {
+    "dpkg-db-cataloger": 1544,
+    "go-module-binary-cataloger": 320,
+    "linux-kernel-cataloger": 251,
+    "ruby-gemfile-cataloger": 13,
+    "ruby-gemspec-cataloger": 9,
+    "binary-classifier-cataloger": 6,
+    "github-actions-usage-cataloger": 3,
+    "?": 1
+  },
+  "pkg_db_entries": 1544,
+  "pkg_db_unique": 772,
+  "pkg_db_duplicated": 772,
+  "pkg_db_with_purl": 0,
+  "cpe_with_release_suffix": 759,
+  "ours_with_cpe": 117,
+  "syft_right_vendor_product": 7,
+  "syft_right_version": 0,
+  "binary_classifier": [
+    [
+      "bash",
+      "5.1.16",
+      "cpe:2.3:a:gnu:bash:5.1.16:*:*:*:*:*:*:*"
+    ],
+    [
+      "busybox",
+      "1.35.0",
+      "cpe:2.3:a:busybox:busybox:1.35.0:*:*:*:*:*:*:*"
+    ],
+    [
+      "curl",
+      "7.83.1",
+      "cpe:2.3:a:haxx:curl:7.83.1:*:*:*:*:*:*:*"
+    ],
+    [
+      "gzip",
+      "1.11",
+      "cpe:2.3:a:gnu:gzip:1.11:*:*:*:*:*:*:*"
+    ],
+    [
+      "jq",
+      "1.6",
+      "cpe:2.3:a:jqlang:jq:1.6:*:*:*:*:*:*:*"
+    ],
+    [
+      "openssl",
+      "1.1.1q",
+      "cpe:2.3:a:openssl:openssl:1.1.1q:*:*:*:*:*:*:*"
+    ]
+  ],
+  "examples": [
+    [
+      "busybox",
+      "cpe:2.3:a:busybox:busybox:1.35.0-3:*:*:*:*:*:*:*",
+      "cpe:2.3:a:busybox:busybox:1.35.0"
+    ],
+    [
+      "dnsmasq-full",
+      "cpe:2.3:a:dnsmasq-full:dnsmasq-full:2.86-1:*:*:*:*:*:*:*",
+      "cpe:2.3:a:thekelleys:dnsmasq:2.86"
+    ],
+    [
+      "dropbear",
+      "cpe:2.3:a:dropbear:dropbear:2022.82-2:*:*:*:*:*:*:*",
+      "cpe:2.3:a:dropbear_ssh_project:dropbear_ssh:2022.82"
+    ],
+    [
+      "libcurl4",
+      "cpe:2.3:a:libcurl4:libcurl4:7.83.1-1:*:*:*:*:*:*:*",
+      "cpe:2.3:a:haxx:libcurl:7.83.1"
+    ],
+    [
+      "libopenssl1.1",
+      "cpe:2.3:a:libopenssl1.1:libopenssl1.1:1.1.1q-20:*:*:*:*:*:*:*",
+      "cpe:2.3:a:openssl:openssl:1.1.1q"
+    ],
+    [
+      "openssh-sftp-server",
+      "cpe:2.3:a:openssh-sftp-server:openssh-sftp-server:9.0p1-1:*:*:*:*:*:*:*",
+      "cpe:2.3:a:openbsd:openssh:9.0p1"
+    ],
+    [
+      "openssl-util",
+      "cpe:2.3:a:openssl-util:openssl-util:1.1.1q-20:*:*:*:*:*:*:*",
+      "cpe:2.3:a:openssl:openssl:1.1.1q"
+    ],
+    [
+      "samba36-server",
+      "cpe:2.3:a:samba36-server:samba36-server:3.6.25-15:*:*:*:*:*:*:*",
+      "cpe:2.3:a:samba:samba:3.6.25"
+    ]
+  ]
+}

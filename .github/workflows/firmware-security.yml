@@ -1,0 +1,102 @@
+# Pipeline di sicurezza del firmware.
+#
+# Gira a ogni push e pull request, e ogni lunedì anche senza modifiche: le nuove CVE escono
+# dopo il rilascio del prodotto, quindi la SBOM va riconfrontata di continuo (CRA, Allegato I, parte II).
+name: firmware-security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      firmware_url:
+        description: "URL del firmware da analizzare (lascia vuoto per quello di esempio)"
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  # Firmware di esempio: build comunitaria ImmortalWrt per ASUS RT-AC58U (2023).
+  # Per analizzare un'immagine OpenWrt ufficiale, avvia il workflow a mano indicando l'URL.
+  EXAMPLE_FW_URL: https://github.com/SuLingGG/OpenWrt-Rpi/releases/download/ipq40xx-generic/immortalwrt-ipq40xx-generic-asus_rt-ac58u-squashfs-sysupgrade.bin
+  EXAMPLE_FW_SHA256: d9cd6f6c11ea7125aa17c420087a16b8ca1923bca079660dbce390d1167d4b6d
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pytest "cyclonedx-python-lib[json-validation]"
+      - run: pytest -q
+
+  firmware-scan:
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Dipendenze
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq squashfs-tools
+          pip install -r requirements.txt
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sudo sh -s -- -b /usr/local/bin
+
+      - name: Scarica il firmware e verifica l'hash
+        env:
+          FW_URL: ${{ inputs.firmware_url }}
+        run: |
+          url="${FW_URL:-$EXAMPLE_FW_URL}"
+          curl -sSfL -o firmware.bin "$url"
+          if [ -z "$FW_URL" ]; then
+            echo "$EXAMPLE_FW_SHA256  firmware.bin" | sha256sum -c -
+          else
+            sha256sum firmware.bin
+          fi
+
+      - name: Cache dei feed NVD
+        uses: actions/cache@v4
+        with:
+          path: .cache/nvd
+          key: nvd-${{ github.run_id }}
+          restore-keys: nvd-
+
+      - name: Pipeline (SBOM, CVE, controlli, triage)
+        id: scan
+        continue-on-error: true   # il risultato del gate è riportato nel riepilogo, vedi sotto
+        env:
+          FAIL_ON: P1
+          FW_NAME: ${{ inputs.firmware_url && 'Firmware da URL' || 'ImmortalWrt 18.06-k5.4 per ASUS RT-AC58U (build 2023-03-09)' }}
+        run: bash scripts/run_lab.sh firmware.bin out
+
+      - name: Riepilogo
+        if: always()
+        run: |
+          {
+            echo "## Gate di sicurezza: ${{ steps.scan.outcome == 'success' && '✅ superato' || '❌ bloccato (finding P1 aperti)' }}"
+            echo
+            echo "In un progetto reale il job di rilascio dipenderebbe da questo gate (needs:) e non partirebbe."
+            echo
+            sed -n '/^## Sintesi/,/^## Priorità P1/p' out/report.md | sed '$d'
+            echo
+            sed -n '1,14p' out/checks.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Artefatti (SBOM, VEX, report)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-security-report
+          path: |
+            out/*.json
+            out/*.md
+            out/firmware.sha256
+          retention-days: 30

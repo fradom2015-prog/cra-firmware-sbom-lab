@@ -1,0 +1,6 @@
+# Formato RFC 9116. In un sito reale va pubblicato in https://dominio/.well-known/security.txt
+Contact: https://github.com/fradom2015-prog/cra-firmware-sbom-lab/security/advisories/new
+Expires: 2027-09-30T00:00:00.000Z
+Policy: https://github.com/fradom2015-prog/cra-firmware-sbom-lab/blob/main/SECURITY.md
+Preferred-Languages: it, en
+Canonical: https://github.com/fradom2015-prog/cra-firmware-sbom-lab/blob/main/.well-known/security.txt

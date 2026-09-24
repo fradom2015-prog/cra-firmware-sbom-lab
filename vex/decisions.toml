@@ -1,0 +1,186 @@
+# Decisioni di analisi per il documento VEX.
+#
+# Ogni voce chiude o classifica una CVE trovata dal confronto SBOM/NVD, con una motivazione
+# verificabile sul firmware analizzato. Stati ammessi (CycloneDX 1.6):
+#   not_affected   il componente c'è ma la vulnerabilità non è sfruttabile (serve una justification)
+#   false_positive la corrispondenza è sbagliata
+#   exploitable    confermata: va corretta
+#   in_triage      in analisi (default per tutto ciò che non è qui)
+#   resolved       corretta in una versione successiva del firmware
+#
+# Firmware: ASUS RT-AC58U, ImmortalWrt 18.06-k5.4 (build 2023-03-09)
+# SHA-256: d9cd6f6c11ea7125aa17c420087a16b8ca1923bca079660dbce390d1167d4b6d
+
+# --- OpenSSH: nel firmware ci sono solo sftp-server e il client sftp -------------------------
+# Verifica: usr/lib/opkg/info/openssh-sftp-*.list contiene solo /usr/bin/sftp e sftp-server.
+# /usr/bin/ssh e /usr/bin/scp sono link simbolici a /usr/sbin/dropbear. Non esistono sshd,
+# ssh-agent, ssh-add né il client ssh di OpenSSH.
+
+[[decision]]
+cve = "CVE-2024-6387"
+component = "openssh"
+state = "not_affected"
+justification = "code_not_present"
+detail = "regreSSHion riguarda sshd. Il firmware usa Dropbear come server SSH; di OpenSSH sono installati solo sftp-server e il client sftp."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2023-38408"
+component = "openssh"
+state = "not_affected"
+justification = "code_not_present"
+detail = "Vulnerabilità nel supporto PKCS#11 di ssh-agent: ssh-agent non è presente nel firmware."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2023-28531"
+component = "openssh"
+state = "not_affected"
+justification = "code_not_present"
+detail = "Riguarda ssh-add, che non è presente nel firmware."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2023-51385"
+component = "openssh"
+state = "not_affected"
+justification = "code_not_present"
+detail = "Command injection nel client ssh di OpenSSH. /usr/bin/ssh punta a Dropbear (dbclient), non a OpenSSH."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+# --- dnsmasq: CVE contestate ---------------------------------------------------------------
+# NVD le marca come DISPUTED: secondo il manutentore i crash avvengono solo nel harness di
+# fuzzing e non sono raggiungibili dal codice di dnsmasq in esecuzione.
+
+[[decision]]
+cve = "CVE-2021-45951"
+component = "dnsmasq"
+state = "false_positive"
+detail = "CVE contestata (DISPUTED in NVD): il manutentore indica che CVE-2021-45951..45957 derivano dal harness di fuzzing e non rappresentano vulnerabilità reali."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2021-45952"
+component = "dnsmasq"
+state = "false_positive"
+detail = "Vedi CVE-2021-45951."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2021-45953"
+component = "dnsmasq"
+state = "false_positive"
+detail = "Vedi CVE-2021-45951."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2021-45954"
+component = "dnsmasq"
+state = "false_positive"
+detail = "Vedi CVE-2021-45951."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2021-45955"
+component = "dnsmasq"
+state = "false_positive"
+detail = "Vedi CVE-2021-45951."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2021-45956"
+component = "dnsmasq"
+state = "false_positive"
+detail = "Vedi CVE-2021-45951."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2021-45957"
+component = "dnsmasq"
+state = "false_positive"
+detail = "Vedi CVE-2021-45951."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+# --- OpenSSL: elaborazione delle certificate policy ----------------------------------------
+# Secondo gli advisory OpenSSL, CVE-2023-0464/0465/0466 si manifestano solo se l'applicazione
+# abilita la verifica delle policy X.509, disattivata di default.
+
+[[decision]]
+cve = "CVE-2023-0464"
+component = "openssl"
+state = "not_affected"
+justification = "requires_configuration"
+detail = "Richiede la verifica delle policy X.509 (opzione -policy o X509_V_FLAG_POLICY_CHECK), disattivata di default in OpenSSL e non abilitata nella configurazione di fabbrica del firmware. Da rivalutare se un servizio la abilita."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2023-0465"
+component = "openssl"
+state = "not_affected"
+justification = "requires_configuration"
+detail = "Come CVE-2023-0464: si applica solo con la verifica delle policy attiva."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2023-0466"
+component = "openssl"
+state = "not_affected"
+justification = "requires_configuration"
+detail = "Come CVE-2023-0464: X509_VERIFY_PARAM_add0_policy non abilita da sola il controllo, il problema esiste solo per applicazioni che contano su quella funzione."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+# --- Samba 3.6: funzioni che non esistono in questa versione -------------------------------
+# samba36-server installa solo smbd, nmbd, smbpasswd e samba_multicall.
+# Non c'è un Active Directory Domain Controller né un KDC Kerberos.
+
+[[decision]]
+cve = "CVE-2022-45141"
+component = "samba"
+state = "not_affected"
+justification = "code_not_present"
+detail = "Riguarda Samba come AD DC. Samba 3.6 (samba36-server) non include il ruolo di Domain Controller Active Directory."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2022-2031"
+component = "samba"
+state = "not_affected"
+justification = "code_not_present"
+detail = "Riguarda KDC e kpasswd di Samba AD DC, assenti in samba36-server."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2020-1472"
+component = "samba"
+state = "not_affected"
+justification = "requires_configuration"
+detail = "Zerologon colpisce Samba solo quando fa da domain controller (domain logons = yes). Il template /etc/samba/smb.conf.template del firmware configura 'security = user' senza 'domain logons': il dispositivo non è un DC. Resta nel catalogo KEV: da rivalutare se il ruolo DC viene abilitato."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+# --- Confermata: SambaCry ------------------------------------------------------------------
+
+[[decision]]
+cve = "CVE-2017-7494"
+component = "samba"
+state = "exploitable"
+response = ["update", "workaround_available"]
+detail = "smbd è installato e Samba 3.6.25 è nel range vulnerabile. /etc/config/samba abilita le share 'homes', scrivibili dagli utenti autenticati: la precondizione dell'exploit (share scrivibile) è soddisfatta. Mitigazione immediata: 'nt pipe support = no' in smb.conf. Soluzione: rimuovere samba36 o passare a ksmbd o a Samba 4 aggiornato."
+author = "Francesco Terracciano"
+date = "2026-09-24"

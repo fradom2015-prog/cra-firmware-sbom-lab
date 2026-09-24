@@ -1,0 +1,13 @@
+__pycache__/
+.pytest_cache/
+.cache/
+out/
+run*/
+*.bin
+*.img
+*.img.gz
+*.tar.gz
+extract/
+.DS_Store
+ci/
+.venv/
