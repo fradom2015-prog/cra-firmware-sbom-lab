@@ -184,3 +184,69 @@ response = ["update", "workaround_available"]
 detail = "smbd è installato e Samba 3.6.25 è nel range vulnerabile. /etc/config/samba abilita le share 'homes', scrivibili dagli utenti autenticati: la precondizione dell'exploit (share scrivibile) è soddisfatta. Mitigazione immediata: 'nt pipe support = no' in smb.conf. Soluzione: rimuovere samba36 o passare a ksmbd o a Samba 4 aggiornato."
 author = "Francesco Terracciano"
 date = "2026-09-24"
+
+
+# --- Decisioni di Francesco (verifiche su Kali, 24/09/2026) -------------------------------
+
+[[decision]]
+cve = "CVE-2023-34966"
+component = "samba"
+state = "not_affected"
+justification = "code_not_present"
+detail = "Riguarda il servizio Spotlight (mdssvc), introdotto in Samba 4.x. Nel firmware c'è Samba 3.6.25: nessun file mdssvc/spotlight nel rootfs e nessuna stringa corrispondente nel binario samba_multicall."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2021-44142"
+component = "samba"
+state = "not_affected"
+justification = "code_not_present"
+detail = "Riguarda il modulo vfs_fruit, introdotto in Samba 4.x. Assente in Samba 3.6.25: nessun file e nessuna stringa 'fruit' nel binario samba_multicall."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2023-50387"
+component = "dnsmasq"
+state = "not_affected"
+justification = "requires_configuration"
+detail = "KeyTrap colpisce solo la validazione DNSSEC. /etc/config/dhcp non abilita DNSSEC: l'opzione esiste nello script di avvio ma è disattivata di fabbrica. Da rivalutare se viene attivata."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2023-50868"
+component = "dnsmasq"
+state = "not_affected"
+justification = "requires_configuration"
+detail = "Esaurimento CPU nella validazione NSEC3 di DNSSEC: come CVE-2023-50387, DNSSEC non è abilitato nella configurazione di fabbrica."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2023-50387"
+component = "bind"
+state = "not_affected"
+justification = "code_not_reachable"
+detail = "Sono installati solo bind-client, bind-dig, bind-host e bind-libs: nessun resolver (named) né validatore (delv). dig e host non validano DNSSEC, quindi il codice vulnerabile della libreria non viene eseguito."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2023-50868"
+component = "bind"
+state = "not_affected"
+justification = "code_not_reachable"
+detail = "Come CVE-2023-50387 per bind: nessun programma installato esegue la validazione DNSSEC."
+author = "Francesco Terracciano"
+date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2023-38545"
+component = "libcurl"
+state = "exploitable"
+response = ["update"]
+detail = "libcurl 7.83.1 è usata da curl e transmission. L'overflow richiede un proxy SOCKS5 con risoluzione remota (socks5h), non configurato di fabbrica, ma attivabile da chiunque abbia una shell (curl -x socks5h://). Rischio pratico basso, ma il codice è raggiungibile: si corregge aggiornando libcurl a 8.4.0 o successiva."
+author = "Francesco Terracciano"
+date = "2026-09-24"
