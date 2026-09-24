@@ -250,3 +250,12 @@ response = ["update"]
 detail = "libcurl 7.83.1 è usata da curl e transmission. L'overflow richiede un proxy SOCKS5 con risoluzione remota (socks5h), non configurato di fabbrica, ma attivabile da chiunque abbia una shell (curl -x socks5h://). Rischio pratico basso, ma il codice è raggiungibile: si corregge aggiornando libcurl a 8.4.0 o successiva."
 author = "Francesco Terracciano"
 date = "2026-09-24"
+
+[[decision]]
+cve = "CVE-2023-0286"
+component = "openssl"
+state = "not_affected"
+justification = "requires_configuration"
+detail = "Type confusion X.400 in GENERAL_NAME_cmp: sfruttabile solo se l'applicazione abilita la verifica delle CRL. Nel firmware nessuna configurazione la attiva: /etc/config e /etc/openvpn non contengono crl-verify, e le voci CRL di openssl.cnf riguardano solo l'emissione di CRL (comando openssl ca), non la verifica."
+author = "Francesco Terracciano"
+date = "2026-09-24"
