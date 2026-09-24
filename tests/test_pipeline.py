@@ -196,3 +196,20 @@ def test_apk_database(tmp_path):
     assert by["busybox"]["licenses"][0]["license"]["name"] == "GPL-2.0-only"
     deps = {d["ref"]: d["dependsOn"] for d in sbom["dependencies"]}
     assert deps["pkg:busybox"] == ["pkg:libc"]
+
+
+def test_grype_normalized_on_sbom_products(rootfs):
+    """Due pacchetti dello stesso prodotto e la stessa CVE da NVD: un solo finding con due fonti."""
+    sbom, _ = fw_sbom.build_sbom(rootfs, None, None)
+    grype = {"matches": [
+        {"vulnerability": {"id": "CVE-2099-0001", "severity": "High",
+                           "cvss": [{"version": "3.1", "vector": "V", "metrics": {"baseScore": 7.5}}]},
+         "artifact": {"name": "libopenssl3", "version": "3.0.8-1"}},
+        {"vulnerability": {"id": "CVE-2099-0001", "severity": "High"},
+         "artifact": {"name": "linux-kernel", "version": "6.6.86"}},
+    ]}
+    g = triage.from_grype(grype, sbom)
+    assert [(f["component"], f["version"]) for f in g] == [("openssl", "3.0.8")]  # kernel escluso
+    nvd = [{**g[0], "source": "nvd"}]
+    merged = triage.merge(nvd + g)
+    assert len(merged) == 1 and merged[0]["sources"] == ["nvd", "grype"]

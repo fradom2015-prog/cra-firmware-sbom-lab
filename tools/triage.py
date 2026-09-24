@@ -29,7 +29,7 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import chunked, dump_json, load_json, open_maybe_compressed, vercmp  # noqa: E402
+from common import chunked, dump_json, load_json, open_maybe_compressed, parse_cpe23, vercmp  # noqa: E402
 
 KEV_URLS = [
     "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
@@ -54,10 +54,32 @@ PRIORITY_LABEL = {
 
 # ------------------------------------------------------------------ input ---
 
-def from_grype(doc: dict) -> list[dict]:
+def sbom_index(sbom: dict) -> dict[str, dict]:
+    """nome pacchetto -> bom-ref, vendor, prodotto e versione upstream presi dal CPE della SBOM."""
+    idx = {}
+    for c in sbom.get("components", []):
+        p = parse_cpe23(c["cpe"]) if c.get("cpe") else None
+        idx[c["name"]] = {"ref": c["bom-ref"],
+                          "vendor": p["vendor"] if p else "",
+                          "product": p["product"] if p else c["name"],
+                          "version": p["version"] if p else c.get("version", "")}
+    return idx
+
+
+def from_grype(doc: dict, sbom: dict | None = None, include_kernel: bool = False) -> list[dict]:
+    """Normalizza i match di grype sui componenti della SBOM.
+
+    grype riporta un match per ogni pacchetto (openssl-util, libopenssl1.1, ...), mentre nvd_match
+    ragiona per prodotto (openssl 1.1.1q): senza questa normalizzazione la stessa CVE verrebbe
+    contata una volta per pacchetto e le due fonti non si unirebbero.
+    """
+    idx = sbom_index(sbom) if sbom else {}
     out = []
     for m in doc.get("matches", []):
         v, art = m.get("vulnerability", {}), m.get("artifact", {})
+        known = idx.get(art.get("name", ""))
+        if known and known["product"] == "linux_kernel" and not include_kernel:
+            continue
         cve = v.get("id", "")
         if not cve.startswith("CVE-"):
             rel = [r.get("id") for r in m.get("relatedVulnerabilities", []) if r.get("id", "").startswith("CVE-")]
@@ -74,8 +96,11 @@ def from_grype(doc: dict) -> list[dict]:
                 break
         fix = v.get("fix") or {}
         f = {
-            "cve": cve, "component": art.get("name", ""), "vendor": "", "version": art.get("version", ""),
-            "bom_refs": [f"pkg:{art.get('name', '')}"], "cvss": cvss,
+            "cve": cve,
+            "component": known["product"] if known else art.get("name", ""),
+            "vendor": known["vendor"] if known else "",
+            "version": known["version"] if known else art.get("version", ""),
+            "bom_refs": [known["ref"] if known else f"pkg:{art.get('name', '')}"], "cvss": cvss,
             "fixed_in": (fix.get("versions") or [None])[0], "cwe": [], "published": "",
             "description": (v.get("description") or "")[:400], "conditional": False, "source": "grype",
         }
@@ -308,6 +333,16 @@ def build_report(findings, sbom, meta, stats, unknown) -> str:
     kev_n = sum(1 for f in open_f if f.get("kev"))
     lines += [f"**{len(findings)}** corrispondenze CVE su **{len(comps)}** componenti. "
               f"**{kev_n}** aperte sono nel catalogo CISA KEV.", ""]
+    if len({src for f in findings for src in f.get("sources", [])}) > 1:
+        both = sum(1 for f in findings if len(f.get("sources", [])) > 1)
+        only = defaultdict(int)
+        for f in findings:
+            if len(f.get("sources", [])) == 1:
+                only[f["sources"][0]] += 1
+        lines += [f"Confronto tra le fonti: **{both}** trovate sia da nvd_match sia da grype, "
+                  f"**{only['nvd']}** solo da nvd_match, **{only['grype']}** solo da grype. "
+                  "Le differenze vanno lette: una CVE trovata da una sola fonte è la prima candidata "
+                  "a falso positivo o a dato mancante.", ""]
 
     lines += ["## Vulnerabilità nel catalogo CISA KEV", "",
               "Sono sfruttate attivamente nel mondo reale. Per il Cyber Resilience Act (art. 14) la notifica "
@@ -378,7 +413,7 @@ def run(a) -> int:
         sources.append(f"NVD ({', '.join(doc.get('feeds', []))})" if len(doc.get("feeds", [])) < 4
                        else f"NVD ({len(doc['feeds'])} feed)")
     if a.grype:
-        raw += from_grype(load_json(a.grype))
+        raw += from_grype(load_json(a.grype), sbom, a.include_kernel)
         sources.append("grype")
     findings = merge(raw)
 
@@ -435,6 +470,8 @@ def main(argv=None) -> int:
     ap.add_argument("--stats", type=Path, help="Statistiche prodotte da fw_sbom.py --stats")
     ap.add_argument("--out-dir", type=Path, required=True)
     ap.add_argument("--cache-dir", type=Path, default=Path(".cache"))
+    ap.add_argument("--include-kernel", action="store_true",
+                    help="Tiene i match di grype sul kernel (esclusi di default, come in nvd_match.py)")
     ap.add_argument("--offline", action="store_true", help="Non scaricare KEV ed EPSS (usa solo file locali e cache)")
     ap.add_argument("--fail-on", choices=["P1", "P2", "none"], default="none",
                     help="Esce con codice 1 se restano finding aperti di questa priorità (per la CI)")
