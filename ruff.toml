@@ -1,0 +1,5 @@
+target-version = "py39"
+line-length = 160
+
+[lint]
+select = ["E", "F", "W", "B", "I", "UP"]

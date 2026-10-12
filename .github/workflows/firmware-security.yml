@@ -33,7 +33,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r requirements.txt pytest "cyclonedx-python-lib[json-validation]"
+      - run: pip install -r requirements.txt pytest "cyclonedx-python-lib[json-validation]" ruff==0.16.8
+      - run: ruff check tools tests
+      - run: bash -n scripts/run_lab.sh
       - run: pytest -q
 
   firmware-scan:

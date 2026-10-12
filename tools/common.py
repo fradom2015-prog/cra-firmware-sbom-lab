@@ -5,8 +5,9 @@ import gzip
 import json
 import lzma
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import IO, Iterable
+from typing import IO
 
 # Parole che indicano una pre-release: "1.0rc1" viene prima di "1.0".
 _PRERELEASE = {"alpha", "beta", "rc", "pre", "preview", "dev", "snapshot"}
