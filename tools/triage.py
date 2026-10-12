@@ -44,6 +44,7 @@ VALID_JUSTIFICATIONS = {
     "requires_environment", "protected_by_compiler", "protected_at_runtime",
     "protected_at_perimeter", "protected_by_mitigating_control",
 }
+VALID_RESPONSES = {"can_not_fix", "will_not_fix", "update", "rollback", "workaround_available"}
 PRIORITY_LABEL = {
     "P1": "Massima: correggere subito",
     "P2": "Alta: pianificare il fix a breve",
@@ -213,6 +214,10 @@ def load_decisions(path: Path | None) -> list[dict]:
             raise SystemExit(f"Decisione per {d.get('cve')}: justification '{d['justification']}' non valida.")
         if d["state"] == "not_affected" and not d.get("justification"):
             raise SystemExit(f"Decisione per {d.get('cve')}: 'not_affected' richiede una justification.")
+        resp = d.get("response", [])
+        if isinstance(resp, str) or not set(resp) <= VALID_RESPONSES:
+            raise SystemExit(f"Decisione per {d.get('cve')}: response {resp!r} non valida. "
+                             f"Serve una lista di valori tra {sorted(VALID_RESPONSES)}.")
     return decs
 
 
@@ -256,10 +261,15 @@ def build_vex(findings: list[dict], sbom: dict) -> dict:
     serial = sbom.get("serialNumber", "").replace("urn:uuid:", "")
     bom_version = sbom.get("version", 1)
     vulns = []
+    # la stessa CVE può colpire due versioni dello stesso componente: il bom-ref deve restare unico
+    n_refs = defaultdict(int)
+    for f in findings:
+        n_refs[(f["cve"], f["component"])] += 1
     for f in findings:
         c = f.get("cvss") or {}
+        ref = f"vex:{f['cve']}:{f['component']}"
         v = {
-            "bom-ref": f"vex:{f['cve']}:{f['component']}",
+            "bom-ref": ref if n_refs[(f["cve"], f["component"])] == 1 else f"{ref}@{f['version']}",
             "id": f["cve"],
             "source": {"name": "NVD", "url": f"https://nvd.nist.gov/vuln/detail/{f['cve']}"},
             "affects": [{"ref": f"urn:cdx:{serial}/{bom_version}#{r}"} for r in f["bom_refs"]],
@@ -378,6 +388,12 @@ def build_report(findings, sbom, meta, stats, unknown) -> str:
                   key=lambda r: (-r[3], -r[5], -r[2]))
     lines.append(md_table(["Componente", "Versione", "CVE aperte", "P1", "KEV", "CVSS max", "Versione minima che le chiude"], rows))
 
+    if meta.get("orphan_decisions"):
+        lines += ["## Decisioni VEX da rivedere", "",
+                  "Queste decisioni in `vex/decisions.toml` non corrispondono a nessun finding: la CVE non è più nei "
+                  "feed, il componente è stato aggiornato oppure CVE o componente sono scritti male.", ""]
+        lines += [f"- {o}" for o in meta["orphan_decisions"]] + [""]
+
     if stats or unknown:
         lines += ["## Qualità della SBOM", ""]
         if stats:
@@ -433,10 +449,19 @@ def run(a) -> int:
         f["decision"] = d
         f["state"] = d["state"] if d else "in_triage"
 
+    # una decisione che non chiude più nessun finding è da rivedere: la CVE è sparita dai feed,
+    # il componente è stato aggiornato o la decisione è scritta male (CVE o componente sbagliati)
+    used = {id(f["decision"]) for f in findings if f["decision"]}
+    orphans = [d for d in decisions if id(d) not in used]
+    for d in orphans:
+        print(f"Attenzione: la decisione per {d.get('cve')} ({d.get('component') or '*'}) "
+              "non corrisponde a nessun finding.", file=sys.stderr)
+
     order = {"P1": 0, "P2": 1, "P3": 2, "P4": 3}
     findings.sort(key=lambda f: (order[f["priority"]], -(f.get("cvss", {}).get("score") or 0), f["cve"]))
     meta = {"generated": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "sources": sources,
-            "kev": kev_meta, "epss": epss_meta}
+            "kev": kev_meta, "epss": epss_meta,
+            "orphan_decisions": [f"{d.get('cve')} ({d.get('component') or '*'})" for d in orphans]}
     stats = load_json(a.stats) if a.stats and a.stats.exists() else None
 
     dump_json({"meta": meta, "findings": findings}, a.out_dir / "triage.json")

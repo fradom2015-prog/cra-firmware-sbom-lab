@@ -18,7 +18,6 @@ import nvd_match  # noqa: E402
 import triage  # noqa: E402
 from common import upstream_version, vercmp  # noqa: E402
 
-
 # ------------------------------------------------------------ vercmp -------
 
 @pytest.mark.parametrize("a,b,exp", [
@@ -213,3 +212,44 @@ def test_grype_normalized_on_sbom_products(rootfs):
     nvd = [{**g[0], "source": "nvd"}]
     merged = triage.merge(nvd + g)
     assert len(merged) == 1 and merged[0]["sources"] == ["nvd", "grype"]
+
+
+@pytest.mark.parametrize("response", ["update", ["patch"]])
+def test_invalid_response(tmp_path, response):
+    """'response' deve essere una lista di valori CycloneDX, altrimenti il VEX non è valido."""
+    p = tmp_path / "d.json"
+    p.write_text(json.dumps({"decision": [{"cve": "CVE-1", "state": "exploitable", "response": response}]}))
+    with pytest.raises(SystemExit):
+        triage.load_decisions(p)
+
+
+def test_orphan_decision_and_unique_vex_refs(rootfs, nvd_feed, tmp_path, capsys):
+    sbom, _ = fw_sbom.build_sbom(rootfs, None, "test")
+    sp = tmp_path / "sbom.json"
+    sp.write_text(json.dumps(sbom))
+    res = nvd_match.match(sp, [nvd_feed])
+    # stessa CVE su due versioni dello stesso componente
+    f1 = next(f for f in res["findings"] if f["cve"] == "CVE-2099-0001")
+    res["findings"].append({**f1, "version": "3.0.9"})
+    mp = tmp_path / "matches.json"
+    mp.write_text(json.dumps(res))
+    dec = tmp_path / "decisions.json"
+    dec.write_text(json.dumps({"decision": [
+        {"cve": "CVE-2099-9999", "component": "openssl", "state": "false_positive", "detail": "x"}]}))
+    out = tmp_path / "out"
+    triage.main(["--sbom", str(sp), "--nvd", str(mp), "--decisions", str(dec), "--offline",
+                 "--cache-dir", str(tmp_path / "c"), "--out-dir", str(out)])
+    assert "CVE-2099-9999" in capsys.readouterr().err
+    assert "CVE-2099-9999 (openssl)" in (out / "report.md").read_text()
+    refs = [v["bom-ref"] for v in json.loads((out / "vex.cdx.json").read_text())["vulnerabilities"]]
+    assert len(refs) == len(set(refs))
+
+
+def test_wan_zone_not_confused_with_wan6(tmp_path):
+    r = tmp_path / "rootfs"
+    (r / "etc/config").mkdir(parents=True)
+    (r / "etc/uci-defaults/subdir").mkdir(parents=True)  # una cartella non deve far fallire il controllo
+    (r / "etc/config/firewall").write_text(
+        "config zone\n\toption name 'wan'\n\toption input 'REJECT'\n\n"
+        "config zone\n\toption name 'wan6'\n\toption input 'ACCEPT'\n")
+    assert fw_checks.check_wan_firewall(r)["status"] == "PASS"

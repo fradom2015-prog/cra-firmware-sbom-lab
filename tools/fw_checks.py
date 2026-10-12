@@ -22,8 +22,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import dump_json  # noqa: E402
 
 try:
-    from elftools.elf.elffile import ELFFile
     from elftools.common.exceptions import ELFError
+    from elftools.elf.elffile import ELFFile
 except ImportError:  # pragma: no cover
     ELFFile = None
 
@@ -171,16 +171,16 @@ def check_wan_firewall(root: Path):
     fw = root / "etc/config/firewall"
     if not fw.exists():
         return result("C07", "Firewall sulla WAN", INFO, "/etc/config/firewall assente.", "I.2(j)", "5.6")
-    text = fw.read_text(errors="replace")
+    text = "\n" + fw.read_text(errors="replace")  # così anche il primo blocco viene separato da "\nconfig "
     pol = None
     for z in re.split(r"\nconfig ", text):
-        if z.startswith("zone") and re.search(r"option name\s+'?wan'?", z):
+        if z.startswith("zone") and re.search(r"option name\s+'?wan'?\s*$", z, re.M):
             m = re.search(r"option input\s+'?(\w+)'?", z)
             pol = m.group(1) if m else "?"
     # porte aperte dalla WAN: regole nel file e regole aggiunte al primo avvio dagli script uci-defaults
     openings = []
     for blk in re.split(r"\nconfig ", text):
-        if (blk.startswith("rule") and re.search(r"option src\s+'?wan'?", blk)
+        if (blk.startswith("rule") and re.search(r"option src\s+'?wan'?\s*$", blk, re.M)
                 and re.search(r"option target\s+'?ACCEPT'?", blk) and not re.search(r"option dest\s", blk)):
             port = re.search(r"option dest_port\s+'?([\w:-]+)'?", blk)
             name = re.search(r"option name\s+'?([^'\n]+)'?", blk)
@@ -188,6 +188,8 @@ def check_wan_firewall(root: Path):
                 openings.append(f"/etc/config/firewall: {name.group(1) if name else 'regola'} -> porta {port.group(1)}")
     ud = root / "etc/uci-defaults"
     for script in (sorted(ud.iterdir()) if ud.exists() else []):
+        if not script.is_file():
+            continue
         t = script.read_text(errors="replace")
         for rule in set(re.findall(r"firewall\.(\w+)\.src='wan'", t)):
             if re.search(rf"firewall\.{rule}\.target='ACCEPT'", t):
