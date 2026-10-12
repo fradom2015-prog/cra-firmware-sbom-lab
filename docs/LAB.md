@@ -53,7 +53,8 @@ echo "d9cd6f6c11ea7125aa17c420087a16b8ca1923bca079660dbce390d1167d4b6d  rt-ac58u
 FW_NAME="ImmortalWrt per ASUS RT-AC58U" bash scripts/run_lab.sh rt-ac58u.bin out
 ```
 
-La prima esecuzione scarica circa 100 MB di feed NVD in `.cache/nvd`. Su Kali, a differenza dell'ambiente
+La prima esecuzione scarica circa 100 MB di feed NVD in `.cache/nvd`. Le esecuzioni successive li riscaricano
+se hanno più di un giorno; senza rete usano la copia in cache, quindi il laboratorio funziona anche offline. Su Kali, a differenza dell'ambiente
 in cui ho generato gli esempi, l'API EPSS di FIRST è raggiungibile: nel report comparirà la colonna EPSS
 valorizzata e alcune priorità potrebbero cambiare. **Confronta il tuo `out/report.md` con quello in
 `examples/`**: capire perché cambia qualcosa è parte dell'esercizio.
@@ -80,6 +81,8 @@ estratto (`out/extract/rootfs/...`). Tre spunti su cui ragionare:
 Aggiungi le decisioni in `vex/decisions.toml` con lo stesso formato delle altre, rilancia
 `scripts/run_lab.sh` e verifica che il report le conteggi tra le "chiuse con VEX" (o tra le confermate).
 Poi `pytest -q`: il test `test_every_closed_finding_is_justified` controlla che ogni chiusura sia motivata.
+Se sbagli il codice della CVE o il nome del componente, la decisione non chiude nulla: `triage.py` la segnala
+come "da rivedere" sia nel terminale sia nel report.
 
 ## 5. Ripeti su un firmware OpenWrt ufficiale
 

@@ -80,17 +80,33 @@ fi
 
 # ---------------------------------------------------------------- 3. CVE
 log "Feed NVD (fkie-cad/nvd-json-data-feeds)"
-TAG="$(curl -sSI https://github.com/fkie-cad/nvd-json-data-feeds/releases/latest | awk -F/ 'tolower($1) ~ /^location/ {print $NF}' | tr -d '\r')"
 YEARS="${NVD_YEARS:-$(seq 2002 "$(date +%Y)")}"
+TAG=""
 for y in $YEARS; do
   f="$NVD_DIR/CVE-$y.json.xz"
   # riscarica i feed più vecchi di un giorno: le CVE vengono aggiornate di continuo
   if [ ! -s "$f" ] || [ -n "$(find "$f" -mtime +0 2>/dev/null)" ]; then
-    curl -sSfL -o "$f" "https://github.com/fkie-cad/nvd-json-data-feeds/releases/download/$TAG/CVE-$y.json.xz" \
-      || echo "  feed $y non disponibile"
+    # la release più recente si cerca solo se serve scaricare: così si lavora anche offline con la cache
+    if [ -z "$TAG" ]; then
+      TAG="$(curl -sSI https://github.com/fkie-cad/nvd-json-data-feeds/releases/latest 2>/dev/null \
+        | awk -F/ 'tolower($1) ~ /^location/ {print $NF}' | tr -d '\r' || true)"
+      TAG="${TAG:-offline}"
+    fi
+    # scarica in un file temporaneo: un download fallito non deve cancellare il feed in cache
+    if [ "$TAG" != offline ] && curl -sSfL -o "$f.part" \
+        "https://github.com/fkie-cad/nvd-json-data-feeds/releases/download/$TAG/CVE-$y.json.xz"; then
+      mv "$f.part" "$f"
+    else
+      rm -f "$f.part"
+      if [ -s "$f" ]; then echo "  feed $y non aggiornato, uso la copia in cache"; else echo "  feed $y non disponibile"; fi
+    fi
   fi
 done
-python3 "$HERE/tools/nvd_match.py" "$OUT/sbom.cdx.json" "$NVD_DIR"/CVE-*.json.xz -o "$OUT/matches.json"
+shopt -s nullglob
+FEEDS=("$NVD_DIR"/CVE-*.json.xz)
+shopt -u nullglob
+[ ${#FEEDS[@]} -gt 0 ] || { echo "Nessun feed NVD disponibile in $NVD_DIR (serve la rete al primo avvio)."; exit 1; }
+python3 "$HERE/tools/nvd_match.py" "$OUT/sbom.cdx.json" "${FEEDS[@]}" -o "$OUT/matches.json"
 
 GRYPE_ARG=()
 if command -v grype >/dev/null; then
