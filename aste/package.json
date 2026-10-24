@@ -1,0 +1,12 @@
+{
+  "name": "aste",
+  "version": "0.1.0",
+  "private": true,
+  "description": "App di aste online: prima soluzione senza dipendenze esterne",
+  "type": "module",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test"
+  }
+}
