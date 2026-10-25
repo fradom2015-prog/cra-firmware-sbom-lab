@@ -8,6 +8,7 @@ import { createMailer } from './services/mailer.js';
 import { createLocalStorage, createS3Storage } from './services/storage.js';
 import { createStripeProvider, FakePaymentProvider } from './services/payments.js';
 import { createLocalBus, createRedisBus } from './services/events.js';
+import { createExpoPushSender } from './services/push.js';
 import { startJobs } from './jobs.js';
 
 const config = loadConfig();
@@ -31,6 +32,7 @@ const app = await buildApp({
     : createLocalStorage(config.UPLOAD_DIR, config.PUBLIC_URL),
   payments,
   bus: config.REDIS_URL ? createRedisBus(config.REDIS_URL) : createLocalBus(),
+  push: createExpoPushSender(config.EXPO_ACCESS_TOKEN),
   redis,
 });
 

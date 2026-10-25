@@ -4,7 +4,7 @@ import { many, one, tx } from '../db/pool.js';
 import { badRequest, conflict, notFound } from '../lib/errors.js';
 import { audit, parse, requireUser, requireVerified, uuidParam } from '../lib/http.js';
 import { verifyPassword } from '../services/password.js';
-import { revokeAllSessions } from './auth.js';
+import { displayNameSchema, revokeAllSessions } from './auth.js';
 
 // Paesi in cui un venditore può ricevere incassi (SEPA, supportati da Stripe Connect).
 const SELLER_COUNTRIES = ['IT', 'AT', 'BE', 'DE', 'ES', 'FR', 'IE', 'LU', 'NL', 'PT', 'SM'] as const;
@@ -50,6 +50,21 @@ export async function userRoutes(app: FastifyInstance) {
         seller: seller ? { type: seller.type, payoutsEnabled: seller.payouts_enabled } : null,
       },
     };
+  });
+
+  app.patch('/me', async (req) => {
+    const user = requireUser(req);
+    const { displayName } = parse(z.object({ displayName: displayNameSchema }), req.body);
+    const row = await one(db, 'UPDATE users SET display_name = $2 WHERE id = $1 AND NOT EXISTS (SELECT 1 FROM users WHERE display_name = $2 AND id <> $1) RETURNING id', [user.id, displayName]);
+    if (!row) throw conflict('display_name_taken', 'Nome utente già in uso');
+    return { displayName };
+  });
+
+  app.delete('/me/push-tokens/:token', async (req, reply) => {
+    const user = requireUser(req);
+    const { token } = parse(z.object({ token: z.string().min(10).max(300) }), req.params);
+    await db.query('DELETE FROM push_tokens WHERE token = $1 AND user_id = $2', [token, user.id]);
+    return reply.code(204).send();
   });
 
   app.get('/me/seller', async (req) => {

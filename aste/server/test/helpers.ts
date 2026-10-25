@@ -11,6 +11,7 @@ import { MemoryMailer } from '../src/services/mailer.js';
 import { createLocalStorage } from '../src/services/storage.js';
 import { FakePaymentProvider } from '../src/services/payments.js';
 import { createLocalBus } from '../src/services/events.js';
+import { MemoryPushSender } from '../src/services/push.js';
 import { TEST_DB_URL } from './global-setup.js';
 
 export interface TestCtx {
@@ -18,6 +19,7 @@ export interface TestCtx {
   db: Db;
   mailer: MemoryMailer;
   payments: FakePaymentProvider;
+  push: MemoryPushSender;
   clock: { now: Date; advance(ms: number): void };
 }
 
@@ -41,11 +43,12 @@ export function useTestApp(): TestCtx {
     const config = loadConfig({ NODE_ENV: 'test', DATABASE_URL: TEST_DB_URL, PUBLIC_URL: 'http://test.local' });
     const mailer = new MemoryMailer();
     const payments = new FakePaymentProvider();
+    const push = new MemoryPushSender();
     const app = await buildApp({
-      config, db: pool, clock: () => clock.now, mailer, payments, bus: createLocalBus(),
+      config, db: pool, clock: () => clock.now, mailer, payments, push, bus: createLocalBus(),
       storage: createLocalStorage(mkdtempSync(path.join(tmpdir(), 'aste-test-')), config.PUBLIC_URL),
     }, { logger: false });
-    Object.assign(ctx, { app, db: pool, mailer, payments, clock });
+    Object.assign(ctx, { app, db: pool, mailer, payments, push, clock });
   });
   afterEach(async () => {
     await ctx.app.close();

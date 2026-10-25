@@ -13,6 +13,7 @@ import type { Storage } from './services/storage.js';
 import { KEY_RE } from './services/storage.js';
 import type { PaymentProvider } from './services/payments.js';
 import type { EventBus } from './services/events.js';
+import type { PushSender } from './services/push.js';
 import { authRoutes, loadUser } from './modules/auth.js';
 import { auctionRoutes } from './modules/auctions.js';
 import { userRoutes } from './modules/users.js';
@@ -28,6 +29,7 @@ export interface Deps {
   storage: Storage;
   payments: PaymentProvider;
   bus: EventBus;
+  push: PushSender;
   redis?: Redis;
 }
 

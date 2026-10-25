@@ -91,3 +91,28 @@ describe('profilo, privacy e moderazione', () => {
     expect((await api(ctx, 'GET', `/auctions/${auction.id}`)).status).toBe(404);
   });
 });
+
+describe('notifiche e nome utente', () => {
+  it('push sui dispositivi registrati, senza dettagli sensibili', async () => {
+    const seller = await createUser(ctx, { name: 'venditore' });
+    await makeSeller(ctx, seller);
+    const anna = await createUser(ctx, { name: 'anna' });
+    const bruno = await createUser(ctx, { name: 'bruno' });
+    await api(ctx, 'PUT', '/me/push-tokens', { token: anna.token, body: { token: 'ExponentPushToken[anna-iphone]', platform: 'ios' } });
+    const auction = await createActiveAuction(ctx, seller);
+    await bid(ctx, anna, auction.id, 20_000);
+    await bid(ctx, bruno, auction.id, 30_000);
+    expect(ctx.push.sent).toEqual([expect.objectContaining({ to: 'ExponentPushToken[anna-iphone]', title: expect.stringContaining('superato'), data: { auctionId: auction.id, type: 'outbid' } })]);
+    expect(ctx.push.sent[0]!.body).not.toContain('\n');
+    await api(ctx, 'DELETE', `/me/push-tokens/${encodeURIComponent('ExponentPushToken[anna-iphone]')}`, { token: anna.token });
+    expect((await ctx.db.query('SELECT count(*)::int AS n FROM push_tokens')).rows[0].n).toBe(0);
+  });
+
+  it('cambio del nome utente, unico', async () => {
+    const anna = await createUser(ctx, { name: 'anna' });
+    await createUser(ctx, { name: 'bruno' });
+    expect((await api(ctx, 'PATCH', '/me', { token: anna.token, body: { displayName: 'Bruno' } })).status).toBe(409);
+    expect((await api(ctx, 'PATCH', '/me', { token: anna.token, body: { displayName: 'anna_collezioni' } })).status).toBe(200);
+    expect((await api(ctx, 'GET', '/me', { token: anna.token })).body.user.displayName).toBe('anna_collezioni');
+  });
+});

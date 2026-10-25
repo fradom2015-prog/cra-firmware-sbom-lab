@@ -24,6 +24,7 @@ const schema = z.object({
   UPLOAD_DIR: z.string().default('uploads'),
   SMTP_URL: optional,
   MAIL_FROM: z.string().default('Aste <no-reply@example.com>'),
+  EXPO_ACCESS_TOKEN: optional,
   PWNED_PASSWORD_CHECK: bool.default(false),
   TERMS_VERSION: z.string().default('2026-10'),
 });
