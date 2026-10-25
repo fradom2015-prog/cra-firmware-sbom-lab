@@ -62,6 +62,19 @@ describe('aste', () => {
     expect((await ctx.app.inject({ method: 'GET', url: '/media/..%2F..%2Fetc/passwd' })).statusCode).toBe(404);
   });
 
+  it('la modifica parziale di una bozza non tocca gli altri campi', async () => {
+    const { seller } = await setup();
+    const draft = await api(ctx, 'POST', '/auctions', { token: seller.token, body: {
+      categorySlug: 'arte', title: 'Statuetta in bronzo', description: '', condition: 'good',
+      startingPrice: 5_000, reservePrice: 20_000, shippingPrice: 1_500, durationDays: 3,
+    } });
+    const id = draft.body.auction.id;
+    const res = await api(ctx, 'PATCH', `/auctions/${id}`, { token: seller.token, body: { title: 'Statuetta in bronzo firmata' } });
+    expect(res.body.auction).toMatchObject({ title: 'Statuetta in bronzo firmata', hasReserve: true, shippingPrice: 1_500, durationDays: 3 });
+    const cleared = await api(ctx, 'PATCH', `/auctions/${id}`, { token: seller.token, body: { reservePrice: null } });
+    expect(cleared.body.auction.hasReserve).toBe(false);
+  });
+
   it('solo il venditore può modificare la propria bozza', async () => {
     const { seller, anna } = await setup();
     const draft = await api(ctx, 'POST', '/auctions', { token: seller.token, body: {
@@ -184,6 +197,10 @@ describe('aste', () => {
     expect(cat.body.items.map((a: { startingPrice: number }) => a.startingPrice)).toEqual([30_000, 90_000]);
     expect(cat.body.total).toBe(2);
     expect((await api(ctx, 'GET', '/auctions?sort=sql-injection')).status).toBe(400);
+  });
+
+  it('parametri pubblici per l\'app', async () => {
+    expect((await api(ctx, 'GET', '/meta')).body).toMatchObject({ buyerFeeBps: 500, sellerFeeBps: 1000, paymentDueDays: 3, antiSnipingMinutes: 2 });
   });
 
   it('preferiti e liste personali', async () => {

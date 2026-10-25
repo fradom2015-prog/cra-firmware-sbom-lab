@@ -16,16 +16,24 @@ const PAGE_SIZE = 24;
 const CONDITIONS = ['new', 'like_new', 'good', 'fair', 'for_parts'] as const;
 const cents = (min: number) => z.number().int('Importo in centesimi interi').min(min).max(MAX_BID);
 
-const draftBody = z.object({
+const draftFields = z.object({
   categorySlug: z.string().max(50),
   title: z.string().trim().min(5, 'Titolo di almeno 5 caratteri').max(100),
   description: z.string().trim().max(10_000),
   condition: z.enum(CONDITIONS),
   startingPrice: cents(100),
-  reservePrice: cents(100).nullable().default(null),
-  shippingPrice: cents(0).default(0),
-  durationDays: z.number().int().min(1).max(14).default(7),
+  reservePrice: cents(100).nullable(),
+  shippingPrice: cents(0),
+  durationDays: z.number().int().min(1).max(14),
 });
+const draftBody = draftFields.extend({
+  reservePrice: draftFields.shape.reservePrice.default(null),
+  shippingPrice: draftFields.shape.shippingPrice.default(0),
+  durationDays: draftFields.shape.durationDays.default(7),
+});
+// In Zod 4 i default valgono anche dentro partial(): la PATCH usa i campi senza default,
+// altrimenti cambiare solo il titolo azzererebbe riserva, spedizione e durata.
+const patchBody = draftFields.partial();
 
 const searchQuery = z.object({
   q: z.string().trim().max(100).optional(),
@@ -171,6 +179,15 @@ export async function auctionRoutes(app: FastifyInstance) {
 
   app.get('/categories', async () => ({ categories: await many(db, 'SELECT slug, name FROM categories ORDER BY id') }));
 
+  // Parametri pubblici che l'app mostra all'utente (commissioni, scadenze).
+  app.get('/meta', async () => {
+    const { config } = app.deps;
+    return {
+      buyerFeeBps: config.BUYER_FEE_BPS, sellerFeeBps: config.SELLER_FEE_BPS, paymentDueDays: config.PAYMENT_DUE_DAYS,
+      autoReleaseDays: config.AUTO_RELEASE_DAYS, antiSnipingMinutes: ANTI_SNIPING_MS / 60_000, termsVersion: config.TERMS_VERSION,
+    };
+  });
+
   app.get('/auctions', async (req) => {
     const q = parse(searchQuery, req.query);
     const params: unknown[] = [];
@@ -237,7 +254,7 @@ export async function auctionRoutes(app: FastifyInstance) {
   app.patch('/auctions/:id', async (req) => {
     const user = requireVerified(req);
     const { id } = parse(uuidParam, req.params);
-    const body = parse(draftBody.partial(), req.body);
+    const body = parse(patchBody, req.body);
     await tx(db, async (c) => {
       await ownedDraft(c, id, user.id);
       const cur = await one<{ starting_price: number; reserve_price: number | null }>(c, 'SELECT starting_price, reserve_price FROM auctions WHERE id = $1', [id]);
