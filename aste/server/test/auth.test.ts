@@ -115,6 +115,19 @@ describe('account', () => {
     expect(res.headers['x-powered-by']).toBeUndefined();
   });
 
+  it('CORS: la versione web può usare tutti i metodi, le altre origini no', async () => {
+    const preflight = (origin: string, method: string) => ctx.app.inject({
+      method: 'OPTIONS', url: '/v1/me/seller',
+      headers: { origin, 'access-control-request-method': method, 'access-control-request-headers': 'authorization,content-type' },
+    });
+    for (const m of ['PUT', 'PATCH', 'DELETE']) {
+      const res = await preflight('https://app.example.com', m);
+      expect(res.headers['access-control-allow-methods']).toContain(m);
+      expect(res.headers['access-control-allow-origin']).toBe('https://app.example.com');
+    }
+    expect((await preflight('https://sito-malevolo.example', 'PUT')).headers['access-control-allow-origin']).toBeUndefined();
+  });
+
   it('limite di frequenza sul login', async () => {
     const statuses = [];
     for (let i = 0; i < 12; i++) {

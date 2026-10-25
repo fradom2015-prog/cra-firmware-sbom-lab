@@ -4,9 +4,20 @@
 
 Vedi [`server/README.md`](../server/README.md).
 
-## Fase 2 — App (Expo / React Native)
+## Fase 2 — App (Expo / React Native) ✅
 
-Un solo codice per iOS, Android e web.
+Vedi [`app/README.md`](../app/README.md). Fatto: tutte le schermate sotto, notifiche push,
+pagamento con Stripe Payment Sheet, link dalle email, tema chiaro/scuro, accessibilità di base.
+
+Rimandato, perché richiede credenziali che non abbiamo ancora:
+
+- **Accedi con Apple / Google**: servono l'account Apple Developer (chiave per revocare i token
+  quando l'utente elimina l'account, come chiede Apple) e un progetto Google Cloud. Non è un
+  requisito degli store finché l'app offre solo email e password.
+- **Build firmate e test su dispositivi reali**: servono l'account Expo/EAS e gli account degli store.
+- Traduzione in inglese.
+
+Piano originale:
 
 - Navigazione: home con aste in chiusura e categorie, ricerca, dettaglio con galleria e conto alla
   rovescia, offerta con tastiera numerica e conferma, storico offerte, aggiornamenti in tempo reale.

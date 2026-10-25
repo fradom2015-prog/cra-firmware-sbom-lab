@@ -29,7 +29,7 @@ const app = await buildApp({
   mailer: createMailer(config.SMTP_URL, config.MAIL_FROM, log),
   storage: config.S3_BUCKET && config.S3_PUBLIC_BASE_URL
     ? createS3Storage({ bucket: config.S3_BUCKET, region: config.S3_REGION, endpoint: config.S3_ENDPOINT, publicBaseUrl: config.S3_PUBLIC_BASE_URL })
-    : createLocalStorage(config.UPLOAD_DIR, config.PUBLIC_URL),
+    : createLocalStorage(config.UPLOAD_DIR, config.API_URL ?? `http://localhost:${config.PORT}`),
   payments,
   bus: config.REDIS_URL ? createRedisBus(config.REDIS_URL) : createLocalBus(),
   push: createExpoPushSender(config.EXPO_ACCESS_TOKEN),

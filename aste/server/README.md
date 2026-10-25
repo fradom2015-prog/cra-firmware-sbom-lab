@@ -7,7 +7,7 @@ cp .env.example .env
 docker compose up -d        # PostgreSQL e Redis locali
 npm install
 npm run dev                 # applica le migrazioni e avvia su http://localhost:3000
-npm test                    # 47 test (serve PostgreSQL: TEST_DATABASE_URL)
+npm test                    # 52 test (serve PostgreSQL: TEST_DATABASE_URL)
 npm run typecheck && npm run lint && npm run audit
 ```
 
@@ -36,18 +36,19 @@ rifiuta di partire se mancano Stripe, Redis, S3, SMTP o HTTPS.
 - **Privacy**: esportazione dei dati (GDPR art. 20), cancellazione dell'account in-app con
   anonimizzazione (obbligatoria per App Store e Play Store), immagini ripulite dai metadati GPS.
 - **Tempo reale**: WebSocket con Redis pub/sub, funziona con più istanze del server.
+- **Notifiche**: email, eventi in tempo reale e push (Expo → APNs/FCM) sui dispositivi registrati.
 
 ## API (prefisso `/v1`)
 
 | Area | Endpoint |
 |---|---|
 | Account | `POST /auth/register` `login` `refresh` `logout` `logout-all` `verify-email` `resend-verification` `forgot-password` `reset-password` `change-password` |
-| Profilo | `GET /me` · `DELETE /me` · `GET /me/export` · `GET/PUT /me/seller` · `POST /me/seller/onboarding` `/me/seller/refresh` · `PUT /me/push-tokens` · `GET /users/:id` |
+| Profilo | `GET/PATCH /me` · `DELETE /me` · `GET /me/export` · `GET/PUT /me/seller` · `POST /me/seller/onboarding` `/me/seller/refresh` · `PUT /me/push-tokens` · `DELETE /me/push-tokens/:token` · `GET /users/:id` |
 | Aste | `GET /categories` · `GET/POST /auctions` · `GET/PATCH/DELETE /auctions/:id` · `POST /auctions/:id/images` `publish` `cancel` · `DELETE /auctions/:id/images/:imageId` · `PUT/DELETE /auctions/:id/watch` |
 | Offerte | `POST /auctions/:id/bids` `{ maxAmount, idempotencyKey }` · `GET /auctions/:id/bids` · `GET /me/auctions` `/me/bidding` `/me/watchlist` |
 | Ordini | `GET /orders?role=buyer\|seller` · `GET /orders/:id` · `POST /orders/:id/pay` `ship` `confirm-delivery` `dispute` `review` |
 | Moderazione | `POST /reports` · `PUT/DELETE /blocks/:id` · `GET /me/blocks` · `GET /admin/reports` · `POST /admin/reports/:id/resolve` · `POST /admin/orders/:id/resolve` |
-| Altro | `POST /webhooks/payments` (Stripe) · `GET /ws` (WebSocket) · `GET /health` |
+| Altro | `GET /meta` (commissioni e scadenze) · `POST /webhooks/payments` (Stripe) · `GET /ws` (WebSocket) · `GET /health` |
 
 Autenticazione: `Authorization: Bearer <accessToken>`. Importi sempre in **centesimi interi**.
 Errori: `{ "error": { "code": "...", "message": "..." } }` con messaggi in italiano.

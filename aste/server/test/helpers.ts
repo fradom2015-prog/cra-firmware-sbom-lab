@@ -40,7 +40,7 @@ export function useTestApp(): TestCtx {
         this.now = new Date(this.now.getTime() + ms);
       },
     };
-    const config = loadConfig({ NODE_ENV: 'test', DATABASE_URL: TEST_DB_URL, PUBLIC_URL: 'http://test.local' });
+    const config = loadConfig({ NODE_ENV: 'test', DATABASE_URL: TEST_DB_URL, PUBLIC_URL: 'http://test.local', CORS_ORIGINS: 'https://app.example.com' });
     const mailer = new MemoryMailer();
     const payments = new FakePaymentProvider();
     const push = new MemoryPushSender();

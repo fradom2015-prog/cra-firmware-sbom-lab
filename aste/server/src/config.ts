@@ -6,7 +6,10 @@ const optional = z.string().trim().transform((v) => (v === '' ? undefined : v)).
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().default(3000),
+  // Indirizzo della web app: link nelle email e ritorno dalla verifica Stripe.
   PUBLIC_URL: z.url().default('http://localhost:3000'),
+  // Indirizzo pubblico di questo server API (immagini in sviluppo, senza S3).
+  API_URL: z.url().optional(),
   CORS_ORIGINS: z.string().default('').transform((v) => v.split(',').map((s) => s.trim()).filter(Boolean)),
   TRUST_PROXY: bool.default(false),
   DATABASE_URL: z.string().min(1),

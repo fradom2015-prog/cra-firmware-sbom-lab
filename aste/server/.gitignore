@@ -3,3 +3,4 @@ dist/
 .env
 uploads/
 coverage/
+dump.rdb

@@ -58,7 +58,15 @@ export async function buildApp(deps: Deps, opts: { logger?: boolean } = {}): Pro
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     hsts: config.NODE_ENV === 'production' ? { maxAge: 31_536_000, includeSubDomains: true } : false,
   });
-  await app.register(cors, { origin: config.CORS_ORIGINS, credentials: false });
+  // Il default di @fastify/cors ammette solo GET, HEAD e POST: la versione web dell'app usa anche
+  // PUT, PATCH e DELETE. Autenticazione con header Bearer, quindi niente cookie cross-origin.
+  await app.register(cors, {
+    origin: config.CORS_ORIGINS,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['authorization', 'content-type', 'accept'],
+    credentials: false,
+    maxAge: 600,
+  });
   await app.register(rateLimit, {
     max: 300,
     timeWindow: '1 minute',
