@@ -7,10 +7,11 @@ cp .env.example .env
 docker compose up -d        # PostgreSQL e Redis locali
 npm install
 npm run dev                 # applica le migrazioni e avvia su http://localhost:3000
-npm test                    # 52 test (serve PostgreSQL: TEST_DATABASE_URL)
+npm test                    # 55 test (serve PostgreSQL: TEST_DATABASE_URL)
 npm run typecheck && npm run lint && npm run audit
 ```
 
+In produzione si usa l'immagine unica server + web app (`../Dockerfile`, `../deploy/`).
 In sviluppo, senza chiavi esterne, il server funziona da solo: pagamenti simulati, email
 scritte nel log (con i link di verifica), immagini su disco. In produzione la configurazione
 rifiuta di partire se mancano Stripe, Redis, S3, SMTP o HTTPS.

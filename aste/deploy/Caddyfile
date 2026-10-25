@@ -1,0 +1,8 @@
+# Certificato HTTPS automatico (Let's Encrypt) per il dominio in DOMAIN.
+{$DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 12MB
+	}
+	reverse_proxy app:3000
+}

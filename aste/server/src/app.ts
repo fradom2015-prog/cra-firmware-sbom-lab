@@ -1,4 +1,6 @@
+import path from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
+import fastifyStatic from '@fastify/static';
 import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
@@ -95,7 +97,55 @@ export async function buildApp(deps: Deps, opts: { logger?: boolean } = {}): Pro
     req.log.error({ err }, 'errore non gestito');
     return reply.code(500).send({ error: { code: 'internal', message: 'Errore interno, riprova più tardi' } });
   });
-  app.setNotFoundHandler((_req, reply) => reply.code(404).send({ error: { code: 'not_found', message: 'Risorsa non trovata' } }));
+  // Universal link (iOS) e App Link (Android): i link nelle email aprono direttamente l'app.
+  app.get('/.well-known/apple-app-site-association', { config: { rateLimit: false } }, async (_req, reply) => {
+    if (!config.APPLE_TEAM_ID) throw new AppError(404, 'not_found', 'Non configurato');
+    return reply.type('application/json').send({
+      applinks: { details: [{ appIDs: [`${config.APPLE_TEAM_ID}.${config.APP_BUNDLE_ID}`], components: [{ '/': '/verify-email*' }, { '/': '/reset-password*' }, { '/': '/auction/*' }] }] },
+      webcredentials: { apps: [`${config.APPLE_TEAM_ID}.${config.APP_BUNDLE_ID}`] },
+    });
+  });
+  app.get('/.well-known/assetlinks.json', { config: { rateLimit: false } }, async () => {
+    if (!config.ANDROID_CERT_SHA256.length) throw new AppError(404, 'not_found', 'Non configurato');
+    return [{
+      relation: ['delegate_permission/common.handle_all_urls', 'delegate_permission/common.get_login_creds'],
+      target: { namespace: 'android_app', package_name: config.APP_BUNDLE_ID, sha256_cert_fingerprints: config.ANDROID_CERT_SHA256 },
+    }];
+  });
+
+  // Web app sullo stesso dominio: niente CORS, link delle email e universal link coerenti.
+  if (config.WEB_DIR) {
+    const root = path.resolve(config.WEB_DIR);
+    await app.register(fastifyStatic, {
+      root,
+      wildcard: false,
+      index: false,
+      setHeaders: (res, file) => {
+        // I file in _expo/static hanno l'hash nel nome: si possono tenere in cache per sempre.
+        res.header('Cache-Control', file.includes(`${path.sep}_expo${path.sep}`) ? 'public, max-age=31536000, immutable' : 'public, max-age=3600');
+      },
+    });
+    // Le pagine HTML hanno bisogno di una CSP diversa da quella delle API ('none').
+    const ws = config.API_URL ? config.API_URL.replace(/^http/, 'ws') : '';
+    const webCsp = [
+      "default-src 'self'", "script-src 'self'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob: https:",
+      // blob: serve alla web app per leggere la foto scelta prima di caricarla.
+      "font-src 'self' data:", `connect-src 'self' blob: ${ws}`.trim(), "frame-src https://connect.stripe.com", "frame-ancestors 'none'",
+      "base-uri 'none'", "form-action 'self'", "object-src 'none'",
+    ].join('; ');
+    app.addHook('onSend', async (_req, reply, payload) => {
+      if (String(reply.getHeader('content-type') ?? '').startsWith('text/html')) reply.header('content-security-policy', webCsp);
+      return payload;
+    });
+    app.setNotFoundHandler((req, reply) => {
+      const isPage = (req.method === 'GET' || req.method === 'HEAD') && !req.url.startsWith('/v1/') && !req.url.startsWith('/media/') && !path.extname(req.url.split('?')[0]!);
+      if (!isPage) return reply.code(404).send({ error: { code: 'not_found', message: 'Risorsa non trovata' } });
+      // Navigazione lato client (Expo Router): ogni pagina parte da index.html.
+      return reply.header('Cache-Control', 'no-cache').sendFile('index.html', root);
+    });
+  } else {
+    app.setNotFoundHandler((_req, reply) => reply.code(404).send({ error: { code: 'not_found', message: 'Risorsa non trovata' } }));
+  }
 
   app.get('/health', { config: { rateLimit: false } }, async () => {
     await deps.db.query('SELECT 1');

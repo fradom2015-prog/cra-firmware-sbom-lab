@@ -12,5 +12,6 @@ in app, il venditore riceve i soldi solo dopo la consegna. Modello ispirato a Ca
 - [Prova end-to-end nel browser](e2e/)
 - [Sicurezza: minacce e contromisure](docs/sicurezza.md)
 - [Percorso verso App Store e Play Store, adempimenti legali](docs/roadmap.md)
+- [Messa online e prime prove su telefono / TestFlight](docs/lancio-test.md) · [`deploy/`](deploy/)
 
 Il prototipo iniziale senza dipendenze è nella cronologia git (commit "Aste online: prima soluzione").

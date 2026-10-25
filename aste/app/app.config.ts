@@ -15,7 +15,8 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: BUNDLE_ID,
     supportsTablet: true,
-    // Universal link: i link nelle email (verifica, reset) aprono direttamente l'app.
+    // Universal link: i link nelle email (verifica, reset, aste) aprono l'app. Il server, che serve
+    // anche la web app sullo stesso dominio, pubblica /.well-known/apple-app-site-association.
     associatedDomains: [`applinks:${API_HOST}`],
     infoPlist: { ITSAppUsesNonExemptEncryption: false },
     privacyManifests: {
@@ -29,7 +30,7 @@ const config: ExpoConfig = {
   android: {
     package: BUNDLE_ID,
     adaptiveIcon: {
-      backgroundColor: '#FFF4EC',
+      backgroundColor: '#C2410C',
       foregroundImage: './assets/android-icon-foreground.png',
       backgroundImage: './assets/android-icon-background.png',
       monochromeImage: './assets/android-icon-monochrome.png',
@@ -41,13 +42,20 @@ const config: ExpoConfig = {
     intentFilters: [{
       action: 'VIEW',
       autoVerify: true,
-      data: [{ scheme: 'https', host: API_HOST, pathPrefix: '/verify-email' }, { scheme: 'https', host: API_HOST, pathPrefix: '/reset-password' }],
+      data: ['/verify-email', '/reset-password', '/auction/'].map((pathPrefix) => ({ scheme: 'https', host: API_HOST, pathPrefix })),
       category: ['BROWSABLE', 'DEFAULT'],
     }],
   },
   web: { favicon: './assets/favicon.png', output: 'single', bundler: 'metro' },
   plugins: [
     'expo-router',
+    ['expo-splash-screen', {
+      image: './assets/splash-icon.png',
+      imageWidth: 160,
+      resizeMode: 'contain',
+      backgroundColor: '#F7F7F5',
+      dark: { image: './assets/splash-icon.png', backgroundColor: '#111317' },
+    }],
     ['expo-secure-store', { faceIDPermission: false }],
     'expo-image',
     'expo-web-browser',

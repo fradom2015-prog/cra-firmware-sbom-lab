@@ -5,9 +5,9 @@ name: aste-server
 on:
   push:
     branches: [main]
-    paths: ["aste/server/**", ".github/workflows/aste-server.yml"]
+    paths: ["aste/server/**", "aste/Dockerfile", "aste/deploy/**", ".github/workflows/aste-server.yml"]
   pull_request:
-    paths: ["aste/server/**", ".github/workflows/aste-server.yml"]
+    paths: ["aste/server/**", "aste/Dockerfile", "aste/deploy/**", ".github/workflows/aste-server.yml"]
   schedule:
     - cron: "0 5 * * 1"
 
@@ -47,8 +47,10 @@ jobs:
       - name: Vulnerabilità note nelle dipendenze di produzione
         run: npm audit --omit=dev --audit-level=high
       - run: npm run build
-      - name: Immagine Docker
-        run: docker build -t aste-server:ci .
+      - name: Immagine Docker (server + web app)
+        run: docker build --build-arg PUBLIC_URL=https://aste.example.com -t aste:ci ..
+      - name: Configurazione di deploy
+        run: cd ../deploy && cp .env.example .env && DOMAIN=aste.example.com POSTGRES_PASSWORD=x docker compose config --quiet
 
   codeql:
     runs-on: ubuntu-latest

@@ -1,0 +1,61 @@
+# Server unico (staging o primo lancio): Caddy (HTTPS automatico) → app → PostgreSQL e Redis.
+# Solo Caddy è raggiungibile da internet. Avvio: cp .env.example .env && docker compose up -d --build
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [app]
+
+  app:
+    build:
+      context: ..
+      args:
+        PUBLIC_URL: https://${DOMAIN}
+        STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://aste:${POSTGRES_PASSWORD}@postgres:5432/aste
+      REDIS_URL: redis://redis:6379
+      PUBLIC_URL: https://${DOMAIN}
+      API_URL: https://${DOMAIN}
+      # L'app riceve traffico solo da Caddy: l'IP reale arriva in X-Forwarded-For.
+      TRUST_PROXY: "1"
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aste
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: aste
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "aste"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redisdata:/data]
+
+volumes:
+  caddy_data:
+  caddy_config:
+  pgdata:
+  redisdata:
+  uploads:

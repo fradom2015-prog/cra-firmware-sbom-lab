@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "audit": "npm audit --omit=dev --audit-level=high"
+    "audit": "npm audit --omit=dev --audit-level=high",
+    "make-admin": "tsx src/scripts/make-admin.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1156.0",
@@ -22,6 +23,7 @@
     "@fastify/helmet": "^13.2.0",
     "@fastify/multipart": "^10.1.6",
     "@fastify/rate-limit": "^11.2.1",
+    "@fastify/static": "^10.1.7",
     "@fastify/websocket": "^11.3.4",
     "@node-rs/argon2": "^2.2.2",
     "fastify": "^5.12.7",

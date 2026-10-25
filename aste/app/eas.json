@@ -1,25 +1,35 @@
 {
-  "cli": { "version": ">= 16.0.0", "appVersionSource": "remote" },
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
   "build": {
     "preview": {
       "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api-staging.example.com",
+        "EXPO_PUBLIC_API_URL": "https://aste.tuodominio.it",
         "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_SOSTITUIRE"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.example.com",
-        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_live_SOSTITUIRE"
+        "EXPO_PUBLIC_API_URL": "https://aste.tuodominio.it",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_SOSTITUIRE"
       }
     }
   },
   "submit": {
     "production": {
-      "ios": { "ascAppId": "SOSTITUIRE" },
-      "android": { "track": "internal" }
+      "ios": {
+        "ascAppId": "SOSTITUIRE"
+      },
+      "android": {
+        "track": "internal"
+      }
     }
   }
 }

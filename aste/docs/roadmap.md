@@ -31,6 +31,8 @@ Piano originale:
 
 ## Fase 3 — Pubblicazione
 
+Primo passo pratico: [lancio-test.md](lancio-test.md) (server online, build di prova, TestFlight).
+
 ### Cosa serve da te (non posso farlo io)
 
 | Cosa | Note |

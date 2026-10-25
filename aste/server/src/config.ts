@@ -25,6 +25,14 @@ const schema = z.object({
   S3_ENDPOINT: optional,
   S3_PUBLIC_BASE_URL: optional,
   UPLOAD_DIR: z.string().default('uploads'),
+  // Server unico di prova: immagini su disco (volume) invece che su S3, anche in produzione.
+  ALLOW_LOCAL_STORAGE: bool.default(false),
+  // Cartella della web app esportata (expo export): se presente la serve lo stesso server.
+  WEB_DIR: optional,
+  // Collegamento app ↔ dominio per aprire l'app dai link nelle email.
+  APP_BUNDLE_ID: z.string().default('it.asteonline.app'),
+  APPLE_TEAM_ID: optional,
+  ANDROID_CERT_SHA256: z.string().default('').transform((v) => v.split(',').map((s) => s.trim()).filter(Boolean)),
   SMTP_URL: optional,
   MAIL_FROM: z.string().default('Aste <no-reply@example.com>'),
   EXPO_ACCESS_TOKEN: optional,
@@ -42,10 +50,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const c = parsed.data;
   // In produzione niente scorciatoie di sviluppo: servizi reali obbligatori.
   if (c.NODE_ENV === 'production') {
-    const missing = (['REDIS_URL', 'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'S3_BUCKET', 'S3_PUBLIC_BASE_URL', 'SMTP_URL'] as const)
-      .filter((k) => !c[k]);
+    const required = ['REDIS_URL', 'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'SMTP_URL', 'API_URL'] as const;
+    const storage = c.ALLOW_LOCAL_STORAGE ? [] : (['S3_BUCKET', 'S3_PUBLIC_BASE_URL'] as const);
+    const missing = [...required, ...storage].filter((k) => !c[k]);
     if (missing.length) throw new Error(`In produzione mancano: ${missing.join(', ')}`);
-    if (!c.PUBLIC_URL.startsWith('https://')) throw new Error('In produzione PUBLIC_URL deve usare https');
+    if (!c.PUBLIC_URL.startsWith('https://') || !c.API_URL?.startsWith('https://')) throw new Error('In produzione PUBLIC_URL e API_URL devono usare https');
   }
   return c;
 }
